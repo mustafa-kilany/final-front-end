@@ -5,7 +5,10 @@ const InventoryContext = createContext(null)
 
 function toPositiveNumber(value) {
   const n = Number(value)
-  return Number.isFinite(n) && n > 0 ? n : null
+  if (Number.isFinite(n) && n > 0) {
+    return n
+  }
+  return null
 }
 
 export function InventoryProvider({ children }) {
@@ -13,19 +16,30 @@ export function InventoryProvider({ children }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  const fetchItems = useCallback(async () => {
+  const fetchItems = useCallback(function() {
     setLoading(true)
     setError(null)
 
-    try {
-      const rows = await fetchInventoryItems()
-      setItems(Array.isArray(rows) ? rows : [])
-    } catch (err) {
-      const message = err?.response?.data?.error?.message || err?.message || 'Failed to load inventory'
-      setError(message)
-    } finally {
-      setLoading(false)
-    }
+    fetchInventoryItems()
+      .then(function(rows) {
+        if (Array.isArray(rows)) {
+          setItems(rows)
+        } else {
+          setItems([])
+        }
+      })
+      .catch(function(err) {
+        let message = 'Failed to load inventory'
+        if (err && err.response && err.response.data && err.response.data.error && err.response.data.error.message) {
+          message = err.response.data.error.message
+        } else if (err && err.message) {
+          message = err.message
+        }
+        setError(message)
+      })
+      .finally(function() {
+        setLoading(false)
+      })
   }, [])
 
   const deleteItem = useCallback((itemId) => {

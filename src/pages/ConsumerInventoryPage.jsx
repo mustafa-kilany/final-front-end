@@ -5,14 +5,18 @@ import { getUser } from '../auth'
 
 function stockBadge(item) {
   const isLow = item.stockQty <= item.reorderLevel
-  return isLow
-    ? 'bg-amber-50 text-amber-800 ring-1 ring-amber-200'
-    : 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200'
+  if (isLow) {
+    return 'bg-amber-50 text-amber-800 ring-1 ring-amber-200'
+  }
+  return 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200'
 }
 
 export default function ConsumerInventoryPage() {
   const user = getUser()
-  const isAdmin = user?.role === 'admin'
+  let isAdmin = false
+  if (user && user.role === 'admin') {
+    isAdmin = true
+  }
 
   const { items, loading, error, fetchItems } = useInventory()
   const { createRequest } = useRequests()
@@ -75,8 +79,8 @@ export default function ConsumerInventoryPage() {
         </div>
       </div>
 
-      {loading ? <div className="text-sm text-slate-600">Loading inventory…</div> : null}
-      {error ? <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div> : null}
+      {loading && <div className="text-sm text-slate-600">Loading inventory…</div>}
+      {error && <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
       {isAdmin ? (
         <div className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
           Admins can view inventory, but stocking happens only by approving Purchase requests.
@@ -84,15 +88,16 @@ export default function ConsumerInventoryPage() {
       ) : null}
 
       <div className="overflow-hidden rounded-2xl border bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
-            <tr>
-              <th className="px-4 py-3">Item</th>
-              <th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3">Stock</th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[500px] text-left text-sm">
+            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
+              <tr>
+                <th className="whitespace-nowrap px-4 py-3">Item</th>
+                <th className="whitespace-nowrap px-4 py-3">Category</th>
+                <th className="whitespace-nowrap px-4 py-3">Stock</th>
+                <th className="whitespace-nowrap px-4 py-3" />
+              </tr>
+            </thead>
           <tbody className="divide-y">
             {filtered.map((item) => (
               <tr key={item.id} className="hover:bg-slate-50">
@@ -130,7 +135,8 @@ export default function ConsumerInventoryPage() {
               </tr>
             ) : null}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
 
       {selected && !isAdmin ? (

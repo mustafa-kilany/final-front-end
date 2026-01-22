@@ -4,5 +4,9 @@ import { getUser } from '../auth'
 export default function HomeRedirect() {
   const user = getUser()
   if (!user) return <Navigate to="/login" replace />
-  return <Navigate to={user.role === 'admin' ? '/admin/dashboard' : '/consumer/dashboard'} replace />
+  let redirectPath = '/consumer/dashboard'
+  if (user.role === 'admin') {
+    redirectPath = '/admin/dashboard'
+  }
+  return <Navigate to={redirectPath} replace />
 }

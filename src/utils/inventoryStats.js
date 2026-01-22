@@ -18,12 +18,21 @@ export function computeInventoryStats(items) {
     const stockQty = Number(item.stockQty) || 0
     const reorderLevel = Number(item.reorderLevel) || 0
 
+    let lowIncrement = 0
+    if (stockQty <= reorderLevel) {
+      lowIncrement = 1
+    }
+    let outIncrement = 0
+    if (stockQty === 0) {
+      outIncrement = 1
+    }
+
     const next = {
       ...prev,
       itemCount: prev.itemCount + 1,
       totalUnits: prev.totalUnits + stockQty,
-      lowCount: prev.lowCount + (stockQty <= reorderLevel ? 1 : 0),
-      outCount: prev.outCount + (stockQty === 0 ? 1 : 0),
+      lowCount: prev.lowCount + lowIncrement,
+      outCount: prev.outCount + outIncrement,
     }
 
     byCategory.set(category, next)

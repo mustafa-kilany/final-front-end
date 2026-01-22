@@ -2,51 +2,104 @@ import { backendHttp } from './backendHttp'
 
 function toNumber(value, fallback = 0) {
   const n = Number(value)
-  return Number.isFinite(n) ? n : fallback
+  if (Number.isFinite(n)) {
+    return n
+  }
+  return fallback
 }
 
 function normalizeItem(raw) {
   if (!raw || typeof raw !== 'object') return null
 
   const id = raw.id || raw._id || null
-  const name = String(raw.name ?? raw.title ?? '').trim()
+  let name = ''
+  if (raw.name) {
+    name = String(raw.name).trim()
+  } else if (raw.title) {
+    name = String(raw.title).trim()
+  }
 
   // Backend model currently uses `qty`; UI expects `stockQty`.
-  const stockQty = toNumber(raw.stockQty ?? raw.qty ?? 0, 0)
+  let stockQtyValue = 0
+  if (raw.stockQty !== undefined && raw.stockQty !== null) {
+    stockQtyValue = raw.stockQty
+  } else if (raw.qty !== undefined && raw.qty !== null) {
+    stockQtyValue = raw.qty
+  }
+  const stockQty = toNumber(stockQtyValue, 0)
+
+  let category = 'General'
+  if (raw.category) {
+    category = String(raw.category)
+  }
+
+  let manufacturer = '—'
+  if (raw.manufacturer) {
+    manufacturer = String(raw.manufacturer)
+  } else if (raw.brand) {
+    manufacturer = String(raw.brand)
+  }
+
+  let reorderLevelValue = 10
+  if (raw.reorderLevel !== undefined && raw.reorderLevel !== null) {
+    reorderLevelValue = raw.reorderLevel
+  }
 
   return {
     ...raw,
     id,
     name,
-    category: String(raw.category ?? 'General'),
-    manufacturer: String(raw.manufacturer ?? raw.brand ?? '—'),
+    category: category,
+    manufacturer: manufacturer,
     stockQty,
-    reorderLevel: toNumber(raw.reorderLevel ?? 10, 10),
+    reorderLevel: toNumber(reorderLevelValue, 10),
   }
 }
 
-export async function fetchItems() {
-  const response = await backendHttp.get('/api/items')
+export function fetchItems() {
+  return backendHttp.get('/api/items').then(function(response) {
+    let data = null
+    if (response && response.data) {
+      data = response.data
+    }
 
-  const data = response?.data
+    let rows = []
+    if (Array.isArray(data)) {
+      rows = data
+    } else if (data && Array.isArray(data.items)) {
+      rows = data.items
+    } else if (data && Array.isArray(data.data)) {
+      rows = data.data
+    } else if (data && Array.isArray(data.results)) {
+      rows = data.results
+    } else if (data && Array.isArray(data.rows)) {
+      rows = data.rows
+    }
 
-  const rows =
-    (Array.isArray(data) && data) ||
-    (Array.isArray(data?.items) && data.items) ||
-    (Array.isArray(data?.data) && data.data) ||
-    (Array.isArray(data?.results) && data.results) ||
-    (Array.isArray(data?.rows) && data.rows) ||
-    []
-
-  return rows.map(normalizeItem).filter(Boolean)
+    return rows.map(normalizeItem).filter(Boolean)
+  })
 }
 
-export async function importOpenFdaItemsToDb({ term, productCode, limit = 25, skip = 0, mode = 'upsert' } = {}) {
-  const safeLimit = Math.min(Math.max(Number(limit) || 25, 1), 100)
-  const safeSkip = Math.max(Number(skip) || 0, 0)
-  const safeMode = mode === 'replace' ? 'replace' : 'upsert'
+export function importOpenFdaItemsToDb({ term, productCode, limit = 25, skip = 0, mode = 'upsert' } = {}) {
+  let safeLimit = Number(limit) || 25
+  if (safeLimit < 1) {
+    safeLimit = 1
+  }
+  if (safeLimit > 100) {
+    safeLimit = 100
+  }
 
-  const response = await backendHttp.post(
+  let safeSkip = Number(skip) || 0
+  if (safeSkip < 0) {
+    safeSkip = 0
+  }
+
+  let safeMode = 'upsert'
+  if (mode === 'replace') {
+    safeMode = 'replace'
+  }
+
+  return backendHttp.post(
     '/api/import/openfda/items',
     {},
     {
@@ -58,7 +111,7 @@ export async function importOpenFdaItemsToDb({ term, productCode, limit = 25, sk
         mode: safeMode,
       },
     },
-  )
-
-  return response.data
+  ).then(function(response) {
+    return response.data
+  })
 }

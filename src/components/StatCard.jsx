@@ -7,11 +7,16 @@ export default function StatCard({ label, value, hint, tone = 'slate' }) {
     red: 'bg-red-50 text-red-900 ring-red-200',
   }
 
+  let toneClass = toneMap.slate
+  if (toneMap[tone]) {
+    toneClass = toneMap[tone]
+  }
+
   return (
-    <div className={['rounded-2xl p-4 ring-1', toneMap[tone] || toneMap.slate].join(' ')}>
+    <div className={['rounded-2xl p-4 ring-1', toneClass].join(' ')}>
       <div className="text-xs font-semibold uppercase tracking-wide opacity-70">{label}</div>
       <div className="mt-1 text-2xl font-semibold">{value}</div>
-      {hint ? <div className="mt-1 text-sm opacity-80">{hint}</div> : null}
+      {hint && <div className="mt-1 text-sm opacity-80">{hint}</div>}
     </div>
   )
 }

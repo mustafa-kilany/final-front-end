@@ -24,7 +24,7 @@ export default function ConsumerDashboardPage() {
   const myRecentRequests = useMemo(() => {
     if (!user) return []
     return requests
-      .filter((r) => r.requestedBy?.id === user.id)
+      .filter((r) => r.requestedBy && r.requestedBy.id === user.id)
       .slice(0, 5)
   }, [requests, user])
 
@@ -57,7 +57,7 @@ export default function ConsumerDashboardPage() {
         </div>
       </div>
 
-      {error ? <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div> : null}
+      {error && <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Total items" value={stats.totalItems} hint="Different products" tone="slate" />
@@ -78,7 +78,7 @@ export default function ConsumerDashboardPage() {
             </Link>
           </div>
 
-          {loading ? <div className="mt-3 text-sm text-slate-600">Loading…</div> : null}
+          {loading && <div className="mt-3 text-sm text-slate-600">Loading…</div>}
 
           <div className="mt-3 divide-y rounded-xl border">
             {lowList.map((i) => (

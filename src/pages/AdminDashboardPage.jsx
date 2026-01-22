@@ -81,19 +81,20 @@ export default function AdminDashboardPage() {
         <p className="text-sm text-slate-600">Approve or reject purchase requests from Purchase department.</p>
       </div>
 
-      {error ? <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div> : null}
+      {error && <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
       <div className="overflow-hidden rounded-2xl border bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
-            <tr>
-              <th className="px-4 py-3">Requested by</th>
-              <th className="px-4 py-3">Item</th>
-              <th className="px-4 py-3">Qty</th>
-              <th className="px-4 py-3">Reason</th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[600px] text-left text-sm">
+            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
+              <tr>
+                <th className="whitespace-nowrap px-4 py-3">Requested by</th>
+                <th className="whitespace-nowrap px-4 py-3">Item</th>
+                <th className="whitespace-nowrap px-4 py-3">Qty</th>
+                <th className="whitespace-nowrap px-4 py-3">Reason</th>
+                <th className="whitespace-nowrap px-4 py-3" />
+              </tr>
+            </thead>
           <tbody className="divide-y">
             {loading ? (
               <tr>
@@ -105,7 +106,8 @@ export default function AdminDashboardPage() {
               renderRequestRows()
             )}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
 
       <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700">

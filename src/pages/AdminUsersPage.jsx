@@ -11,18 +11,28 @@ export default function AdminUsersPage() {
   const [creating, setCreating] = useState(false)
 
   useEffect(() => {
-    async function load() {
+    function load() {
       setError(null)
       setLoading(true)
-      try {
-        const data = await listUsers()
-        setUsers(Array.isArray(data) ? data : [])
-      } catch (err) {
-        const message = err?.response?.data?.message || 'Failed to load users'
-        setError(message)
-      } finally {
-        setLoading(false)
-      }
+
+      listUsers()
+        .then((data) => {
+          if (Array.isArray(data)) {
+            setUsers(data)
+          } else {
+            setUsers([])
+          }
+        })
+        .catch((err) => {
+          let message = 'Failed to load users'
+          if (err && err.response && err.response.data && err.response.data.message) {
+            message = err.response.data.message
+          }
+          setError(message)
+        })
+        .finally(() => {
+          setLoading(false)
+        })
     }
 
     load()
@@ -30,30 +40,35 @@ export default function AdminUsersPage() {
 
   const canCreate = useMemo(() => name.trim() && email.trim() && password.trim(), [name, email, password])
 
-  async function onCreateUser(e) {
+  function onCreateUser(e) {
     e.preventDefault()
     if (!canCreate) return
 
     setCreating(true)
     setError(null)
-    try {
-      const newUser = await createUser({
-        name: name.trim(),
-        email: email.trim(),
-        password: password,
-        role: 'purchase',
-      })
 
-      setUsers((prev) => [newUser, ...prev])
-      setName('')
-      setEmail('')
-      setPassword('')
-    } catch (err) {
-      const message = err?.response?.data?.message || 'Failed to create user'
-      setError(message)
-    } finally {
-      setCreating(false)
-    }
+    createUser({
+      name: name.trim(),
+      email: email.trim(),
+      password: password,
+      role: 'purchase',
+    })
+      .then((newUser) => {
+        setUsers((prev) => [newUser, ...prev])
+        setName('')
+        setEmail('')
+        setPassword('')
+      })
+      .catch((err) => {
+        let message = 'Failed to create user'
+        if (err && err.response && err.response.data && err.response.data.message) {
+          message = err.response.data.message
+        }
+        setError(message)
+      })
+      .finally(() => {
+        setCreating(false)
+      })
   }
 
   return (
@@ -97,7 +112,7 @@ export default function AdminUsersPage() {
           </div>
         </div>
 
-        {error ? <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div> : null}
+        {error && <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
         <div className="mt-3 flex justify-end">
           <button
@@ -105,21 +120,23 @@ export default function AdminUsersPage() {
             disabled={!canCreate || creating}
             className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-60"
           >
-            {creating ? 'Creating…' : 'Create purchase user'}
+            {creating && 'Creating…'}
+            {!creating && 'Create purchase user'}
           </button>
         </div>
       </form>
 
       <div className="overflow-hidden rounded-2xl border bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
-            <tr>
-              <th className="px-4 py-3">Name</th>
-              <th className="px-4 py-3">Email</th>
-              <th className="px-4 py-3">Role</th>
-              <th className="px-4 py-3">Created</th>
-            </tr>
-          </thead>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[500px] text-left text-sm">
+            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
+              <tr>
+                <th className="whitespace-nowrap px-4 py-3">Name</th>
+                <th className="whitespace-nowrap px-4 py-3">Email</th>
+                <th className="whitespace-nowrap px-4 py-3">Role</th>
+                <th className="whitespace-nowrap px-4 py-3">Created</th>
+              </tr>
+            </thead>
           <tbody className="divide-y">
             {users.map((u) => (
               <tr key={u.id} className="hover:bg-slate-50">
@@ -146,7 +163,8 @@ export default function AdminUsersPage() {
               </tr>
             ) : null}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
     </div>
   )

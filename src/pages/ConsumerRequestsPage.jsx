@@ -11,7 +11,11 @@ export default function ConsumerRequestsPage() {
     if (!user) return []
     // Backend already scopes non-admin users to their own requests.
     // Keep a defensive filter in case a future endpoint returns more.
-    return requests.filter((r) => !r.requestedBy?.id || r.requestedBy?.id === user.id)
+    return requests.filter((r) => {
+      if (!r.requestedBy || !r.requestedBy.id) return true
+      if (r.requestedBy.id === user.id) return true
+      return false
+    })
   }, [requests, user])
 
   return (
@@ -30,62 +34,64 @@ export default function ConsumerRequestsPage() {
       </div>
 
       <div className="overflow-hidden rounded-2xl border bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
-            <tr>
-              <th className="px-4 py-3">Item</th>
-              <th className="px-4 py-3">Qty</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Created</th>
-            </tr>
-          </thead>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[450px] text-left text-sm">
+            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
+              <tr>
+                <th className="whitespace-nowrap px-4 py-3">Item</th>
+                <th className="whitespace-nowrap px-4 py-3">Qty</th>
+                <th className="whitespace-nowrap px-4 py-3">Status</th>
+                <th className="whitespace-nowrap px-4 py-3">Created</th>
+              </tr>
+            </thead>
           <tbody className="divide-y">
-            {error ? (
+            {error && (
               <tr>
                 <td className="px-4 py-6 text-sm text-red-700" colSpan={4}>
                   {error}
                 </td>
               </tr>
-            ) : null}
+            )}
 
-            {loading ? (
+            {loading && (
               <tr>
                 <td className="px-4 py-6 text-sm text-slate-600" colSpan={4}>
                   Loading…
                 </td>
               </tr>
-            ) : null}
+            )}
 
-            {mine.map((r) => (
-              <tr key={r.id} className="hover:bg-slate-50">
-                <td className="px-4 py-3 font-medium">{r.itemName}</td>
-                <td className="px-4 py-3">{r.qty}</td>
-                <td className="px-4 py-3">
-                  <span
-                    className={
-                      r.status === 'approved'
-                        ? 'rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800 ring-1 ring-emerald-200'
-                        : r.status === 'rejected'
-                          ? 'rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-800 ring-1 ring-red-200'
-                          : 'rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800 ring-1 ring-amber-200'
-                    }
-                  >
-                    {r.status}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-slate-600">{new Date(r.createdAt).toLocaleString()}</td>
-              </tr>
-            ))}
+            {mine.map((r) => {
+              let statusClass = 'rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800 ring-1 ring-amber-200'
+              if (r.status === 'approved') {
+                statusClass = 'rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800 ring-1 ring-emerald-200'
+              } else if (r.status === 'rejected') {
+                statusClass = 'rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-800 ring-1 ring-red-200'
+              }
+              return (
+                <tr key={r.id} className="hover:bg-slate-50">
+                  <td className="px-4 py-3 font-medium">{r.itemName}</td>
+                  <td className="px-4 py-3">{r.qty}</td>
+                  <td className="px-4 py-3">
+                    <span className={statusClass}>
+                      {r.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-slate-600">{new Date(r.createdAt).toLocaleString()}</td>
+                </tr>
+              )
+            })}
 
-            {mine.length === 0 ? (
+            {mine.length === 0 && (
               <tr>
                 <td className="px-4 py-6 text-sm text-slate-600" colSpan={4}>
                   No requests yet. Create one from the Inventory page.
                 </td>
               </tr>
-            ) : null}
+            )}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
     </div>
   )

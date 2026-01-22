@@ -25,21 +25,29 @@ export default function AdminStockDashboardPage() {
     if (items.length === 0) fetchItems()
   }, [items.length, fetchItems])
 
-  async function handleImportFromFda() {
+  function handleImportFromFda() {
+    const term = window.prompt('FDA import search term (e.g., stent, syringe):', 'stent')
+    if (term == null) return
+
     setImporting(true)
     setImportError(null)
 
-    try {
-      const term = window.prompt('FDA import search term (e.g., stent, syringe):', 'stent')
-      if (term == null) return
-      await importOpenFdaItemsToDb({ term: String(term).trim(), limit: 25, mode: 'replace' })
-      await fetchItems()
-    } catch (err) {
-      const msg = err?.response?.data?.message || err?.message || 'Import failed'
-      setImportError(msg)
-    } finally {
-      setImporting(false)
-    }
+    importOpenFdaItemsToDb({ term: String(term).trim(), limit: 25, mode: 'replace' })
+      .then(() => {
+        return fetchItems()
+      })
+      .catch((err) => {
+        let msg = 'Import failed'
+        if (err && err.response && err.response.data && err.response.data.message) {
+          msg = err.response.data.message
+        } else if (err && err.message) {
+          msg = err.message
+        }
+        setImportError(msg)
+      })
+      .finally(() => {
+        setImporting(false)
+      })
   }
 
   const stats = useMemo(() => computeInventoryStats(items), [items])
@@ -61,8 +69,8 @@ export default function AdminStockDashboardPage() {
         <p className="text-sm text-slate-600">Deeper stock analysis for Finance.</p>
       </div>
 
-      {error ? <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div> : null}
-      {importError ? <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{importError}</div> : null}
+      {error && <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {importError && <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{importError}</div>}
 
       {!loading && items.length === 0 ? (
         <div className="rounded-2xl border bg-white p-4">
@@ -77,7 +85,8 @@ export default function AdminStockDashboardPage() {
               onClick={handleImportFromFda}
               className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-60"
             >
-              {importing ? 'Importing…' : 'Import From FDA'}
+              {importing && 'Importing…'}
+              {!importing && 'Import From FDA'}
             </button>
           </div>
           <div className="mt-3 text-xs text-slate-500">
@@ -106,19 +115,20 @@ export default function AdminStockDashboardPage() {
             </div>
           </div>
 
-          {loading ? <div className="mt-3 text-sm text-slate-600">Loading…</div> : null}
+          {loading && <div className="mt-3 text-sm text-slate-600">Loading…</div>}
 
           <div className="mt-3 overflow-hidden rounded-xl border">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
-                <tr>
-                  <th className="px-4 py-3">Category</th>
-                  <th className="px-4 py-3">Items</th>
-                  <th className="px-4 py-3">Units</th>
-                  <th className="px-4 py-3">Low</th>
-                  <th className="px-4 py-3">Out</th>
-                </tr>
-              </thead>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[400px] text-left text-sm">
+                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
+                  <tr>
+                    <th className="whitespace-nowrap px-4 py-3">Category</th>
+                    <th className="whitespace-nowrap px-4 py-3">Items</th>
+                    <th className="whitespace-nowrap px-4 py-3">Units</th>
+                    <th className="whitespace-nowrap px-4 py-3">Low</th>
+                    <th className="whitespace-nowrap px-4 py-3">Out</th>
+                  </tr>
+                </thead>
               <tbody className="divide-y">
                 {stats.categories.slice(0, 10).map((c) => (
                   <tr key={c.category} className="hover:bg-slate-50">
@@ -138,7 +148,8 @@ export default function AdminStockDashboardPage() {
                   </tr>
                 ) : null}
               </tbody>
-            </table>
+              </table>
+            </div>
           </div>
         </div>
 

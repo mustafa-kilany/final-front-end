@@ -3,9 +3,13 @@ const USER_KEY = 'inventorygo.auth.user'
 function normalizeAuth(raw) {
   if (!raw) return null
   if (raw.user && typeof raw.user === 'object') {
+    let tokenValue = null
+    if (raw.token) {
+      tokenValue = String(raw.token)
+    }
     return {
       user: raw.user,
-      token: raw.token ? String(raw.token) : null,
+      token: tokenValue,
     }
   }
 
@@ -23,7 +27,10 @@ export function getUser() {
   try {
     const parsed = JSON.parse(raw)
     const auth = normalizeAuth(parsed)
-    return auth?.user ?? null
+    if (auth && auth.user) {
+      return auth.user
+    }
+    return null
   } catch {
     return null
   }
@@ -35,7 +42,10 @@ export function getToken() {
   try {
     const parsed = JSON.parse(raw)
     const auth = normalizeAuth(parsed)
-    return auth?.token ?? null
+    if (auth && auth.token) {
+      return auth.token
+    }
+    return null
   } catch {
     return null
   }
@@ -46,7 +56,7 @@ export function saveAuth(value) {
 
   // Allow either (a) { user, token } or (b) just user (legacy)
   const auth = normalizeAuth(value) || { user: value, token: null }
-  if (!auth?.user) return
+  if (!auth || !auth.user) return
 
   localStorage.setItem(USER_KEY, JSON.stringify(auth))
 }

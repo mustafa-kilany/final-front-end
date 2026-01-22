@@ -9,55 +9,91 @@ export function RequestsProvider({ children }) {
   const [error, setError] = useState(null)
   const didInitialLoad = useRef(false)
 
-  const fetchRequests = useCallback(async () => {
+  const fetchRequests = useCallback(function() {
     setLoading(true)
     setError(null)
-    try {
-      const rows = await listRequests()
-      setRequests(Array.isArray(rows) ? rows : [])
-    } catch (err) {
-      const msg = err?.response?.data?.message || err?.message || 'Failed to load requests'
-      setError(msg)
-    } finally {
-      setLoading(false)
-    }
+    listRequests()
+      .then(function(rows) {
+        if (Array.isArray(rows)) {
+          setRequests(rows)
+        } else {
+          setRequests([])
+        }
+      })
+      .catch(function(err) {
+        let msg = 'Failed to load requests'
+        if (err && err.response && err.response.data && err.response.data.message) {
+          msg = err.response.data.message
+        } else if (err && err.message) {
+          msg = err.message
+        }
+        setError(msg)
+      })
+      .finally(function() {
+        setLoading(false)
+      })
   }, [])
 
-  useEffect(() => {
+  useEffect(function() {
     if (didInitialLoad.current) return
     didInitialLoad.current = true
     fetchRequests()
   }, [fetchRequests])
 
-  const createRequest = useCallback(async ({ itemId, qty, reason }) => {
+  const createRequest = useCallback(function({ itemId, qty, reason }) {
     const quantity = Number(qty)
     if (!itemId) return
     if (!Number.isFinite(quantity) || quantity <= 0) return
 
     setError(null)
-    const created = await createPurchaseRequest({ itemId, qty: quantity, reason })
-    if (created) setRequests((prev) => [created, ...prev])
-    return created
+    return createPurchaseRequest({ itemId, qty: quantity, reason }).then(function(created) {
+      if (created) {
+        setRequests(function(prev) {
+          return [created].concat(prev)
+        })
+      }
+      return created
+    })
   }, [])
 
-  const approveRequest = useCallback(async (requestId) => {
+  const approveRequest = useCallback(function(requestId) {
     if (!requestId) return
     setError(null)
-    const updated = await approvePurchaseRequest(requestId)
-    if (updated) {
-      setRequests((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
-    }
-    return updated
+    return approvePurchaseRequest(requestId).then(function(updated) {
+      if (updated) {
+        setRequests(function(prev) {
+          return prev.map(function(r) {
+            if (r.id === updated.id) {
+              return updated
+            }
+            return r
+          })
+        })
+      }
+      return updated
+    })
   }, [])
 
-  const rejectRequest = useCallback(async (requestId, { message } = {}) => {
+  const rejectRequest = useCallback(function(requestId, opts) {
     if (!requestId) return
-    setError(null)
-    const updated = await rejectPurchaseRequest(requestId, { message })
-    if (updated) {
-      setRequests((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
+    let message = undefined
+    if (opts && opts.message) {
+      message = opts.message
     }
-    return updated
+    setError(null)
+    return rejectPurchaseRequest(requestId, { message: message }).then(function(updated) {
+      if (updated) {
+        setRequests(function(prev) {
+          return prev.map(function(r) {
+            if (r.id === updated.id) {
+              return updated
+            }
+            return r
+          })
+        })
+      }
+      return updated
+    })
   }, [])
 
   const value = useMemo(

@@ -15,41 +15,67 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
 
-  const from = location.state?.from
+  let from = null
+  if (location.state && location.state.from) {
+    from = location.state.from
+  }
 
   if (isAuthenticated) {
     if (from) return <Navigate to={from} replace />
-    return <Navigate to={user?.role === 'admin' ? '/admin/dashboard' : '/consumer/inventory'} replace />
+    let redirectPath = '/consumer/inventory'
+    if (user && user.role === 'admin') {
+      redirectPath = '/admin/dashboard'
+    }
+    return <Navigate to={redirectPath} replace />
   }
 
-  async function onSubmit(e) {
+  function onSubmit(e) {
     e.preventDefault()
     setSubmitting(true)
+    setError(null)
 
-    try {
-      setError(null)
-      let data
-      try {
-        data = await loginApi({ email: String(email ?? '').trim(), password: String(password ?? '') })
-      } catch (err) {
-        const msg = err?.response?.data?.message || 'Invalid email or password'
-        setError(msg)
-        return
-      }
-
-      if (!data?.user) {
-        setError('Login failed')
-        return
-      }
-
-      saveAuth({ user: data.user, token: data?.token || data?.accessToken || null })
-
-      const goTo = from || (data.user.role === 'admin' ? '/admin/dashboard' : '/consumer/inventory')
-      nav(goTo, { replace: true })
-      return
-    } finally {
-      setSubmitting(false)
+    let emailValue = ''
+    if (email) {
+      emailValue = String(email).trim()
     }
+    let passwordValue = ''
+    if (password) {
+      passwordValue = String(password)
+    }
+
+    loginApi({ email: emailValue, password: passwordValue })
+      .then((data) => {
+        if (!data || !data.user) {
+          setError('Login failed')
+          return
+        }
+
+        let token = null
+        if (data.token) {
+          token = data.token
+        } else if (data.accessToken) {
+          token = data.accessToken
+        }
+        saveAuth({ user: data.user, token: token })
+
+        let goTo = '/consumer/inventory'
+        if (from) {
+          goTo = from
+        } else if (data.user.role === 'admin') {
+          goTo = '/admin/dashboard'
+        }
+        nav(goTo, { replace: true })
+      })
+      .catch((err) => {
+        let msg = 'Invalid email or password'
+        if (err && err.response && err.response.data && err.response.data.message) {
+          msg = err.response.data.message
+        }
+        setError(msg)
+      })
+      .finally(() => {
+        setSubmitting(false)
+      })
   }
 
   return (
@@ -81,14 +107,15 @@ export default function LoginPage() {
           />
         </div>
 
-        {error ? <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div> : null}
+        {error && <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
         <button
           type="submit"
           disabled={submitting}
           className="w-full rounded-lg bg-sky-600 px-4 py-2.5 font-medium text-white hover:bg-sky-700 disabled:opacity-60"
         >
-          {submitting ? 'Signing in…' : 'Sign in'}
+          {submitting && 'Signing in…'}
+          {!submitting && 'Sign in'}
         </button>
       </form>
     </div>
