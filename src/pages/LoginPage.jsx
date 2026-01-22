@@ -22,34 +22,28 @@ export default function LoginPage() {
     return <Navigate to={user?.role === 'admin' ? '/admin/dashboard' : '/consumer/inventory'} replace />
   }
 
-  async function onSubmit(e) {
+  function onSubmit(e) {
     e.preventDefault()
     setSubmitting(true)
 
-    try {
-      setError(null)
-      let data
-      try {
-        data = await loginApi({ email: String(email ?? '').trim(), password: String(password ?? '') })
-      } catch (err) {
-        const msg = err?.response?.data?.message || 'Invalid email or password'
-        setError(msg)
-        return
-      }
+    setError(null)
+    return loginApi({ email: String(email ?? '').trim(), password: String(password ?? '') })
+      .then((data) => {
+        if (!data?.user) {
+          setError('Login failed')
+          return
+        }
 
-      if (!data?.user) {
-        setError('Login failed')
-        return
-      }
-
-      saveAuth({ user: data.user, token: data?.token || data?.accessToken || null })
-
-      const goTo = from || (data.user.role === 'admin' ? '/admin/dashboard' : '/consumer/inventory')
-      nav(goTo, { replace: true })
-      return
-    } finally {
-      setSubmitting(false)
-    }
+        saveAuth({ user: data.user, token: data?.token || data?.accessToken || null })
+        const goTo = from || (data.user.role === 'admin' ? '/admin/dashboard' : '/consumer/inventory')
+        nav(goTo, { replace: true })
+      })
+      .catch(() => {
+        setError('Invalid email or password')
+      })
+      .finally(() => {
+        setSubmitting(false)
+      })
   }
 
   return (

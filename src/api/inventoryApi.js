@@ -25,40 +25,40 @@ function normalizeItem(raw) {
   }
 }
 
-export async function fetchItems() {
-  const response = await backendHttp.get('/api/items')
+export function fetchItems() {
+  return backendHttp.get('/api/items').then((response) => {
+    const data = response?.data
 
-  const data = response?.data
+    const rows =
+      (Array.isArray(data) && data) ||
+      (Array.isArray(data?.items) && data.items) ||
+      (Array.isArray(data?.data) && data.data) ||
+      (Array.isArray(data?.results) && data.results) ||
+      (Array.isArray(data?.rows) && data.rows) ||
+      []
 
-  const rows =
-    (Array.isArray(data) && data) ||
-    (Array.isArray(data?.items) && data.items) ||
-    (Array.isArray(data?.data) && data.data) ||
-    (Array.isArray(data?.results) && data.results) ||
-    (Array.isArray(data?.rows) && data.rows) ||
-    []
-
-  return rows.map(normalizeItem).filter(Boolean)
+    return rows.map(normalizeItem).filter(Boolean)
+  })
 }
 
-export async function importOpenFdaItemsToDb({ term, productCode, limit = 25, skip = 0, mode = 'upsert' } = {}) {
+export function importOpenFdaItemsToDb({ term, productCode, limit = 25, skip = 0, mode = 'upsert' } = {}) {
   const safeLimit = Math.min(Math.max(Number(limit) || 25, 1), 100)
   const safeSkip = Math.max(Number(skip) || 0, 0)
   const safeMode = mode === 'replace' ? 'replace' : 'upsert'
 
-  const response = await backendHttp.post(
-    '/api/import/openfda/items',
-    {},
-    {
-      params: {
-        term,
-        productCode,
-        limit: safeLimit,
-        skip: safeSkip,
-        mode: safeMode,
+  return backendHttp
+    .post(
+      '/api/import/openfda/items',
+      {},
+      {
+        params: {
+          term,
+          productCode,
+          limit: safeLimit,
+          skip: safeSkip,
+          mode: safeMode,
+        },
       },
-    },
-  )
-
-  return response.data
+    )
+    .then((response) => response.data)
 }

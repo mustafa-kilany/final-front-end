@@ -1,21 +1,20 @@
 import { backendHttp } from './backendHttp'
 
-export async function adminSignup({ name, email, password, adminSignupToken }) {
-  const response = await backendHttp.post('/api/auth/admin/signup', {
-    name,
-    email,
-    password,
-    adminSignupToken,
-  })
-  return response.data
+export function adminSignup({ name, email, password, adminSignupToken }) {
+  return backendHttp
+    .post('/api/auth/admin/signup', {
+      name,
+      email,
+      password,
+      adminSignupToken,
+    })
+    .then((response) => response.data)
 }
 
-export async function loginApi({ email, password }) {
-  const response = await backendHttp.post('/api/auth/login', { email, password })
-  return response.data
+export function loginApi({ email, password }) {
+  return backendHttp.post('/api/auth/login', { email, password }).then((response) => response.data)
 }
 
-export async function meApi() {
-  const response = await backendHttp.get('/api/auth/me')
-  return response.data
+export function meApi() {
+  return backendHttp.get('/api/auth/me').then((response) => response.data)
 }

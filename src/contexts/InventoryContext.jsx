@@ -13,19 +13,22 @@ export function InventoryProvider({ children }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  const fetchItems = useCallback(async () => {
+  const fetchItems = useCallback(() => {
     setLoading(true)
     setError(null)
 
-    try {
-      const rows = await fetchInventoryItems()
-      setItems(Array.isArray(rows) ? rows : [])
-    } catch (err) {
-      const message = err?.response?.data?.error?.message || err?.message || 'Failed to load inventory'
-      setError(message)
-    } finally {
-      setLoading(false)
-    }
+    return fetchInventoryItems()
+      .then((rows) => {
+        setItems(Array.isArray(rows) ? rows : [])
+        return rows
+      })
+      .catch(() => {
+        setError('Failed to load inventory')
+        return []
+      })
+      .finally(() => {
+        setLoading(false)
+      })
   }, [])
 
   const deleteItem = useCallback((itemId) => {

@@ -39,9 +39,9 @@ export default function AdminDashboardPage() {
     rejectRequest(requestId)
   }
 
-  async function handleOpenHistory(requestId) {
+  function handleOpenHistory(requestId) {
     setSelectedRequestId(requestId)
-    await fetchRequestHistory(requestId)
+    return fetchRequestHistory(requestId)
   }
 
   function closeHistory() {

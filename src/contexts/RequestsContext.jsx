@@ -18,18 +18,21 @@ export function RequestsProvider({ children }) {
   const [historyErrorByRequestId, setHistoryErrorByRequestId] = useState({})
   const didInitialLoad = useRef(false)
 
-  const fetchRequests = useCallback(async () => {
+  const fetchRequests = useCallback(() => {
     setLoading(true)
     setError(null)
-    try {
-      const rows = await listRequests()
-      setRequests(Array.isArray(rows) ? rows : [])
-    } catch (err) {
-      const msg = err?.response?.data?.message || err?.message || 'Failed to load requests'
-      setError(msg)
-    } finally {
-      setLoading(false)
-    }
+    return listRequests()
+      .then((rows) => {
+        setRequests(Array.isArray(rows) ? rows : [])
+        return rows
+      })
+      .catch(() => {
+        setError('Failed to load requests')
+        return []
+      })
+      .finally(() => {
+        setLoading(false)
+      })
   }, [])
 
   useEffect(() => {
@@ -38,38 +41,41 @@ export function RequestsProvider({ children }) {
     fetchRequests()
   }, [fetchRequests])
 
-  const createRequest = useCallback(async ({ itemId, qty, reason }) => {
+  const createRequest = useCallback(({ itemId, qty, reason }) => {
     const quantity = Number(qty)
     if (!itemId) return
     if (!Number.isFinite(quantity) || quantity <= 0) return
 
     setError(null)
-    const created = await createPurchaseRequest({ itemId, qty: quantity, reason })
-    if (created) setRequests((prev) => [created, ...prev])
-    return created
+    return createPurchaseRequest({ itemId, qty: quantity, reason }).then((created) => {
+      if (created) setRequests((prev) => [created, ...prev])
+      return created
+    })
   }, [])
 
-  const approveRequest = useCallback(async (requestId) => {
+  const approveRequest = useCallback((requestId) => {
     if (!requestId) return
     setError(null)
-    const updated = await approvePurchaseRequest(requestId)
-    if (updated) {
-      setRequests((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
-    }
-    return updated
+    return approvePurchaseRequest(requestId).then((updated) => {
+      if (updated) {
+        setRequests((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
+      }
+      return updated
+    })
   }, [])
 
-  const rejectRequest = useCallback(async (requestId, { message } = {}) => {
+  const rejectRequest = useCallback((requestId, { message } = {}) => {
     if (!requestId) return
     setError(null)
-    const updated = await rejectPurchaseRequest(requestId, { message })
-    if (updated) {
-      setRequests((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
-    }
-    return updated
+    return rejectPurchaseRequest(requestId, { message }).then((updated) => {
+      if (updated) {
+        setRequests((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
+      }
+      return updated
+    })
   }, [])
 
-  const fetchRequestHistory = useCallback(async (requestId, { force } = {}) => {
+  const fetchRequestHistory = useCallback((requestId, { force } = {}) => {
     if (!requestId) return []
     if (!force && Array.isArray(historyByRequestId[requestId])) {
       return historyByRequestId[requestId]
@@ -77,17 +83,18 @@ export function RequestsProvider({ children }) {
 
     setHistoryLoadingByRequestId((prev) => ({ ...prev, [requestId]: true }))
     setHistoryErrorByRequestId((prev) => ({ ...prev, [requestId]: null }))
-    try {
-      const rows = await getPurchaseRequestHistory(requestId)
-      setHistoryByRequestId((prev) => ({ ...prev, [requestId]: rows }))
-      return rows
-    } catch (err) {
-      const msg = err?.response?.data?.message || err?.message || 'Failed to load request history'
-      setHistoryErrorByRequestId((prev) => ({ ...prev, [requestId]: msg }))
-      return []
-    } finally {
-      setHistoryLoadingByRequestId((prev) => ({ ...prev, [requestId]: false }))
-    }
+    return getPurchaseRequestHistory(requestId)
+      .then((rows) => {
+        setHistoryByRequestId((prev) => ({ ...prev, [requestId]: rows }))
+        return rows
+      })
+      .catch(() => {
+        setHistoryErrorByRequestId((prev) => ({ ...prev, [requestId]: 'Failed to load request history' }))
+        return []
+      })
+      .finally(() => {
+        setHistoryLoadingByRequestId((prev) => ({ ...prev, [requestId]: false }))
+      })
   }, [historyByRequestId])
 
   const value = useMemo(

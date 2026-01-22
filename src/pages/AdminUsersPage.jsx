@@ -11,18 +11,20 @@ export default function AdminUsersPage() {
   const [creating, setCreating] = useState(false)
 
   useEffect(() => {
-    async function load() {
+    function load() {
       setError(null)
       setLoading(true)
-      try {
-        const data = await listUsers()
-        setUsers(Array.isArray(data) ? data : [])
-      } catch (err) {
-        const message = err?.response?.data?.message || 'Failed to load users'
-        setError(message)
-      } finally {
-        setLoading(false)
-      }
+
+      return listUsers()
+        .then((data) => {
+          setUsers(Array.isArray(data) ? data : [])
+        })
+        .catch(() => {
+          setError('Failed to load users')
+        })
+        .finally(() => {
+          setLoading(false)
+        })
     }
 
     load()
@@ -30,30 +32,31 @@ export default function AdminUsersPage() {
 
   const canCreate = useMemo(() => name.trim() && email.trim() && password.trim(), [name, email, password])
 
-  async function onCreateUser(e) {
+  function onCreateUser(e) {
     e.preventDefault()
     if (!canCreate) return
 
     setCreating(true)
     setError(null)
-    try {
-      const newUser = await createUser({
-        name: name.trim(),
-        email: email.trim(),
-        password: password,
-        role: 'purchase',
-      })
 
-      setUsers((prev) => [newUser, ...prev])
-      setName('')
-      setEmail('')
-      setPassword('')
-    } catch (err) {
-      const message = err?.response?.data?.message || 'Failed to create user'
-      setError(message)
-    } finally {
-      setCreating(false)
-    }
+    return createUser({
+      name: name.trim(),
+      email: email.trim(),
+      password: password,
+      role: 'purchase',
+    })
+      .then((newUser) => {
+        setUsers((prev) => [newUser, ...prev])
+        setName('')
+        setEmail('')
+        setPassword('')
+      })
+      .catch(() => {
+        setError('Failed to create user')
+      })
+      .finally(() => {
+        setCreating(false)
+      })
   }
 
   return (

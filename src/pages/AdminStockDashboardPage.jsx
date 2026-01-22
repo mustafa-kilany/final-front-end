@@ -25,21 +25,24 @@ export default function AdminStockDashboardPage() {
     if (items.length === 0) fetchItems()
   }, [items.length, fetchItems])
 
-  async function handleImportFromFda() {
+  function handleImportFromFda() {
     setImporting(true)
     setImportError(null)
 
-    try {
-      const term = window.prompt('FDA import search term (e.g., stent, syringe):', 'stent')
-      if (term == null) return
-      await importOpenFdaItemsToDb({ term: String(term).trim(), limit: 25, mode: 'replace' })
-      await fetchItems()
-    } catch (err) {
-      const msg = err?.response?.data?.message || err?.message || 'Import failed'
-      setImportError(msg)
-    } finally {
+    const term = window.prompt('FDA import search term (e.g., stent, syringe):', 'stent')
+    if (term == null) {
       setImporting(false)
+      return
     }
+
+    return importOpenFdaItemsToDb({ term: String(term).trim(), limit: 25, mode: 'replace' })
+      .then(() => fetchItems())
+      .catch(() => {
+        setImportError('Import failed')
+      })
+      .finally(() => {
+        setImporting(false)
+      })
   }
 
   const stats = useMemo(() => computeInventoryStats(items), [items])
